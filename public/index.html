@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word to PDF Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f4f6f8; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+        }
+        .converter-card { 
+            background: white; 
+            padding: 2.5rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 450px; 
+            text-align: center; 
+        }
+        .upload-icon { 
+            font-size: 3.5rem; 
+            margin-bottom: 1rem; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="converter-card">
+        <div class="upload-icon">📄 ➡️ 📑</div>
+        <h3 class="mb-4 fw-bold text-dark">Word to PDF</h3>
+        
+        <form id="convertForm">
+            <div class="mb-3">
+                <input class="form-control form-control-lg" type="file" id="wordFile" accept=".doc, .docx" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100" id="convertBtn">
+                <span id="btnText">Convert to PDF</span>
+                <div id="spinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></div>
+            </button>
+        </form>
+
+        <div id="result" class="mt-4 d-none">
+            <div class="alert alert-success py-2" role="alert">
+                Conversion Successful! 🎉
+            </div>
+            <a id="downloadLink" href="#" class="btn btn-success btn-lg w-100">Download PDF</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('convertForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('wordFile');
+            const convertBtn = document.getElementById('convertBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const resultDiv = document.getElementById('result');
+            const downloadLink = document.getElementById('downloadLink');
+
+            if (fileInput.files.length === 0) return;
+
+            // 1. Update UI to "Loading" state
+            btnText.innerText = 'Converting...';
+            spinner.classList.remove('d-none');
+            convertBtn.disabled = true;
+            resultDiv.classList.add('d-none');
+
+            // 2. Prepare the file for sending
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                // 3. Send file to the Node.js backend
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Conversion failed on server.');
+
+                // 4. Receive the PDF Blob and create a temporary download link
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                // Set original file name but change extension to .pdf
+                const originalName = fileInput.files[0].name;
+                const pdfName = originalName.replace(/\.[^/.]+$/, "") + ".pdf";
+
+                downloadLink.href = url;
+                downloadLink.download = pdfName;
+                
+                // 5. Show the Download button
+                resultDiv.classList.remove('d-none');
+
+            } catch (error) {
+                alert('An error occurred during conversion. Please make sure the file is a valid Word document.');
+                console.error(error);
+            } finally {
+                // 6. Reset the form button
+                btnText.innerText = 'Convert to PDF';
+                spinner.classList.add('d-none');
+                convertBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
